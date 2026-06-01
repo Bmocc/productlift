@@ -53,4 +53,26 @@ def label_underperforming(
          else 0. Return the product-level frame.
     Edge cases the test checks: a category with one product, and the min_orders cut.
     """
-    raise NotImplementedError("Implement label_underperforming — see tests/test_labels.py")
+    product_stats = (
+        outcome_events.groupby(product_col, as_index=False).agg(
+            revenue=(price_col, "sum"),
+            n_orders=(price_col, "count"),
+            category=(category_col, "first"),
+        )
+    )
+
+    product_stats = product_stats[product_stats["n_orders"] >= min_orders]
+
+    category_thresholds = (
+        product_stats.groupby("category")["revenue"].quantile(quantile).reset_index()
+    ).rename(columns={"revenue": "threshold"})
+
+    product_stats = product_stats.merge(category_thresholds, on="category", how="left")
+
+    product_stats["is_underperforming"] = (
+        product_stats["revenue"] <= product_stats["threshold"]
+    ).astype(int)
+
+    return product_stats[[product_col, "category", "revenue", "n_orders", "is_underperforming"]]
+
+

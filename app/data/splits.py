@@ -49,4 +49,12 @@ def temporal_split(
     The test asserts the windows don't overlap and that max(train.time) <
     min(valid.time) — i.e. no temporal leakage across the boundary.
     """
-    raise NotImplementedError("Implement temporal_split — see tests/test_splits.py")
+
+    train_end = pd.Timestamp(train_end)
+    valid_end = pd.Timestamp(valid_end)
+
+    train = df[df[time_col] <= train_end].reset_index(drop=True)
+    valid = df[(df[time_col] > train_end) & (df[time_col] <= valid_end)].reset_index(drop=True)
+    test = df[df[time_col] > valid_end].reset_index(drop=True)
+
+    return Split(train, valid, test)
