@@ -38,4 +38,28 @@ def temporal_features(
     a cheap guard that catches leakage at the source. The test feeds events
     straddling as_of and checks the windows.
     """
+
+    assert feature_events[time_col].max() <= as_of, "feature_events contains future data relative to as_of"
+
+    t = feature_events[time_col]
+
+    tenure_days = (as_of - feature_events.groupby("product_id")[time_col].min()).dt.days
+    days_since_last = (as_of - feature_events.groupby("product_id")[time_col].max()).dt.days
+    orders_last_30d = feature_events[t >= as_of - pd.Timedelta(days=30)].groupby("product_id").size()
+    orders_last_90d = feature_events[t >= as_of - pd.Timedelta(days=90)].groupby("product_id").size()
+    prior_30d = feature_events[(t < as_of - pd.Timedelta(days=30)) & (t >= as_of - pd.Timedelta(days=60))].groupby("product_id").size()
+    trend = orders_last_30d / prior_30d.replace(0,1)
+
+    temporal_df = pd.DataFrame({
+        'tenure_days': tenure_days,
+        'days_since_last': days_since_last,
+        'orders_last_30d': orders_last_30d,
+        'orders_last_90d': orders_last_90d,
+        'trend': trend
+    }).fillna(0).reset_index()
+
+    return temporal_df
+
+
+
     raise NotImplementedError("Implement temporal_features — see tests/test_features.py")

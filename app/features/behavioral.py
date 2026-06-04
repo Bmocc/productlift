@@ -42,4 +42,18 @@ def behavioral_features(feature_events: pd.DataFrame) -> pd.DataFrame:
     decide on a sensible fill and document it. The test checks the bad_review_rate
     and the NaN handling.
     """
-    raise NotImplementedError("Implement behavioral_features — see tests/test_features.py")
+
+    feature_behavioral = feature_events.groupby("product_id", as_index=False).agg(
+        n_orders=pd.NamedAgg(column="order_id", aggfunc="count"),
+        n_unique_customers=pd.NamedAgg(column="customer_id", aggfunc="nunique"),
+        avg_price=pd.NamedAgg(column="price", aggfunc="mean"),
+        avg_freight=pd.NamedAgg(column="freight_value", aggfunc="mean"),
+        avg_review_score=pd.NamedAgg(column="review_score", aggfunc="mean"),
+        bad_review_rate=pd.NamedAgg(column="review_score", aggfunc=lambda x: (x <= 2).mean()), ## from True/False to calclate mean to get rate
+        late_delivery_rate = pd.NamedAgg(column="late_delivery", aggfunc="mean"),
+        avg_delivery_days = pd.NamedAgg(column="delivery_days", aggfunc="mean")
+    )
+
+    return feature_behavioral
+
+    # raise NotImplementedError("Implement behavioral_features — see tests/test_features.py")
