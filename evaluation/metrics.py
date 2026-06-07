@@ -44,7 +44,7 @@ def brier_score(y_true: np.ndarray, y_prob: np.ndarray) -> float:
     TODO(lillian): one line. Lower = better-calibrated AND sharper. The test checks
     a perfect predictor (0.0) and a hand example.
     """
-    raise NotImplementedError
+    return np.mean(np.square(y_prob - y_true))
 
 
 def expected_calibration_error(y_true: np.ndarray, y_prob: np.ndarray, n_bins: int = 10) -> float:
@@ -58,8 +58,20 @@ def expected_calibration_error(y_true: np.ndarray, y_prob: np.ndarray, n_bins: i
     The test feeds a perfectly-calibrated set (ECE≈0) and a badly-calibrated one.
     This is THE metric to show alongside AUC in a model review.
     """
-    raise NotImplementedError
+    bins = np.linspace(0, 1, n_bins + 1)
+    num_sample = len(y_true)
+    ece = 0.0
+    for lo, hi in zip(bins[:-1], bins[1:]):
+        mask = (y_prob >= lo) & (y_prob < hi)
+        if mask.sum() == 0:
+            continue   # placeholder to avoid empty-bin divide-by-zero; implement the actual gap computation here
+        mean_prob = y_prob[mask].mean()
+        mean_true = y_true[mask].mean()
+        gap = abs(mean_prob - mean_true)
+        ece += gap * mask.sum() / num_sample
 
+    return ece
+    
 
 def recall_at_k(y_true: np.ndarray, y_score: np.ndarray, k_fraction: float) -> float:
     """Of all true positives, what share is captured in the top `k_fraction` by score?
@@ -69,7 +81,12 @@ def recall_at_k(y_true: np.ndarray, y_score: np.ndarray, k_fraction: float) -> f
     point metric — "if we can only review the top 10% of flagged products, how many
     real underperformers do we catch?" Translate the model into a business decision.
     """
-    raise NotImplementedError
+    k = int (np.ceil(k_fraction * len(y_true)))
+    top_k_indices = np.argsort(y_score)[::-1][:k] #make sure to sort in descending order to get the top k scores
+    true_positives_in_top_k = np.sum(y_true[top_k_indices])
+    total_true_positives = np.sum(y_true)
+    recall = true_positives_in_top_k / total_true_positives if total_true_positives > 0 else 0
+    return recall
 
 
 def ndcg_at_k(y_true: np.ndarray, y_score: np.ndarray, k: int) -> float:
@@ -80,4 +97,14 @@ def ndcg_at_k(y_true: np.ndarray, y_score: np.ndarray, k: int) -> float:
     IDCG@k = DCG of the ideal ordering; return DCG/IDCG (0 if IDCG==0). Relevant for
     the ranking framing of "which products to surface/fix first".
     """
-    raise NotImplementedError
+    # raise NotImplementedError
+    ranked_idx = np.argsort(y_score)[::-1][:k]
+    ranked_rel = y_true[ranked_idx]
+
+    discounts = np.log2(np.arange(2, k + 2))
+    dcg = np.sum(ranked_rel / discounts)
+
+    ideal_rel = np.sort(y_true)[::-1][:k]
+    idcg = np.sum(ideal_rel / discounts)
+
+    return float(dcg / idcg) if idcg > 0 else 0.0
