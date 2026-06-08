@@ -26,6 +26,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from scipy.stats import norm
+
 
 @dataclass
 class ABResult:
@@ -56,7 +58,28 @@ def two_proportion_test(
       - significant = p_value < alpha
     The test cross-checks against statsmodels.proportions_ztest on a known case.
     """
-    raise NotImplementedError("Implement two_proportion_test — see tests/test_ab_analyze.py")
+    p_c, p_t = control_conversions / control_n, treatment_conversions / treatment_n
+    absolute_diff = p_t - p_c
+    relative_lift = absolute_diff / p_c if p_c != 0 else 0
+    p_pooled = (control_conversions + treatment_conversions) / (control_n + treatment_n)
+    se_pooled = (p_pooled * (1 - p_pooled) * ( 1 / control_n + 1 / treatment_n)) ** 0.5
+    z = absolute_diff / se_pooled
+    p_value = 2 * (1 - norm.cdf(abs(z)))
+    se_unpooled = ((p_c * (1 - p_c) / control_n) + (p_t * (1 - p_t) / treatment_n)) ** 0.5
+    ci_low = absolute_diff - norm.ppf(1 - alpha / 2) * se_unpooled
+    ci_high = absolute_diff + norm.ppf(1 - alpha / 2) * se_unpooled
+    significant = bool(p_value < alpha)
+    return ABResult(
+        control_rate=p_c,
+        treatment_rate=p_t,
+        absolute_diff=absolute_diff,
+        relative_lift=relative_lift,
+        ci_low=ci_low,
+        ci_high=ci_high,
+        p_value=p_value,
+        significant=significant
+    )
+    # raise NotImplementedError("Implement two_proportion_test — see tests/test_ab_analyze.py")
 
 
 def check_guardrails(results: dict[str, ABResult], guardrail_metrics: list[str]) -> dict[str, bool]:
@@ -68,4 +91,16 @@ def check_guardrails(results: dict[str, ABResult], guardrail_metrics: list[str])
     good) — encode that direction explicitly rather than assuming. Document the
     convention you choose.
     """
-    raise NotImplementedError
+    # raise NotImplementedError
+    HIGHER_IS_WORSE = {"return_rate"}
+    passed_guardrails = {}
+    for metric in guardrail_metrics:
+        result = results[metric]
+        if not result.significant:
+            passed_guardrails[metric] = True  # not significant → pass
+        
+        elif metric in HIGHER_IS_WORSE:
+            passed_guardrails[metric] = result.relative_lift <= 0  # higher is worse → pass if lift ≤ 0
+        else:
+            passed_guardrails[metric] = result.relative_lift >= 0  # higher is better → pass if lift ≥ 0
+    return passed_guardrails

@@ -28,6 +28,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from scipy.stats import norm
+import math
+
 
 @dataclass
 class DesignResult:
@@ -51,7 +54,18 @@ def required_sample_size(
     Cross-check your number against statsmodels
     (NormalIndPower / proportion_effectsize) in the test.
     """
-    raise NotImplementedError("Implement required_sample_size — see tests/test_power.py")
+    p1 = baseline_rate
+    p2 = p1 * (1 + mde_relative)
+    z_alpha = norm.ppf(1 - alpha / 2)
+    z_beta = norm.ppf(power)
+    n = math.ceil(((z_alpha + z_beta) ** 2 * (p1 * (1 - p1) + p2 * (1 - p2))) / ((p2 - p1) ** 2)) # ceil
+    return DesignResult(
+        n_per_arm=n,
+        baseline_rate=baseline_rate,
+        treatment_rate=p2,
+        alpha=alpha,
+        power=power,
+    )
 
 
 def days_to_run(n_per_arm: int, daily_traffic_per_arm: int) -> int:
@@ -61,4 +75,5 @@ def days_to_run(n_per_arm: int, daily_traffic_per_arm: int) -> int:
     you always cover a full weekly cycle. State that rule in the docstring of your
     impl — it's a judgment call interviewers want to hear you make.
     """
-    raise NotImplementedError
+    return max(7, (n_per_arm + daily_traffic_per_arm - 1) // daily_traffic_per_arm)  # ceil
+    # raise NotImplementedError

@@ -26,6 +26,9 @@ from __future__ import annotations
 
 import pandas as pd
 
+from experimentation.analyze import two_proportion_test
+from statsmodels.stats.multitest import multipletests
+
 
 def segment_effects(
     df: pd.DataFrame, segment_col: str, group_col: str, outcome_col: str, alpha: float = 0.05
@@ -43,4 +46,28 @@ def segment_effects(
       - return a DataFrame: [segment, n, lift, p_value, p_adjusted, significant_adj]
     The test checks that adding more segments makes the correction stricter.
     """
-    raise NotImplementedError("Implement segment_effects — see tests/test_segments.py")
+    p_value = []
+    lifts = []
+    ns = []
+    for segment in df[segment_col].unique():
+        control = df[(df[segment_col] == segment) & (df[group_col] == "control")][outcome_col]
+        treatment = df[(df[segment_col] == segment) & (df[group_col] == "treatment")][outcome_col]
+        result = two_proportion_test(
+            int(control.sum()), len(control),
+            int(treatment.sum()), len(treatment),
+        )
+        p_value.append(result.p_value)
+        lifts.append(result.relative_lift)
+        ns.append(len(control) + len(treatment))
+
+    significant_adj, p_adjusted, _, _ = multipletests(p_value, alpha=alpha, method="fdr_bh")
+    return pd.DataFrame(
+        {
+            "segment": df[segment_col].unique(),
+            "n": ns,
+            "lift": lifts,
+            "p_value": p_value,
+            "p_adjusted": p_adjusted,
+            "significant_adj": significant_adj,
+        }
+    )
