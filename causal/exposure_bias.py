@@ -52,4 +52,19 @@ def position_adjusted_rate(
     The test puts equal-quality items at good vs bad positions and checks the
     corrected rates converge while the naive ones don't.
     """
-    raise NotImplementedError("Implement position_adjusted_rate — see tests/test_exposure_bias.py")
+    df = df.copy()
+    if examination_by_position is None:
+        examination_by_position = {pos: 1 / pos for pos in df[position_col].unique()}
+    df["examination"] = df[position_col].map(examination_by_position).clip(lower=0.01)
+    result = (
+        df.groupby(item_col)
+        .agg(
+            naive_rate=(click_col, "mean"),
+            click_sum=(click_col, "sum"),
+            examination_sum=("examination", "sum"),
+            n=(click_col, "size"),
+        )
+        .reset_index()
+    )
+    result["corrected_rate"] = result["click_sum"] / result["examination_sum"]
+    return result[[item_col, "naive_rate", "corrected_rate", "n"]]

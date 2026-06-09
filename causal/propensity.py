@@ -27,7 +27,7 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
-
+from sklearn.linear_model import LogisticRegression
 
 def estimate_propensity(X: pd.DataFrame, treatment: pd.Series) -> np.ndarray:
     """Return P(treated | X) for each row via logistic regression.
@@ -35,7 +35,10 @@ def estimate_propensity(X: pd.DataFrame, treatment: pd.Series) -> np.ndarray:
     TODO(lillian): fit sklearn LogisticRegression(treatment ~ X), return
     predict_proba(X)[:, 1]. (In practice you'd scale X; keep it simple and document.)
     """
-    raise NotImplementedError("Implement estimate_propensity — see tests/test_propensity.py")
+    model = LogisticRegression(max_iter=1000, random_state=42)
+    model.fit(X, treatment)
+    return model.predict_proba(X)[:, 1]
+
 
 
 def check_overlap(propensity: np.ndarray, treatment: pd.Series) -> dict:
@@ -46,7 +49,23 @@ def check_overlap(propensity: np.ndarray, treatment: pd.Series) -> dict:
     near 0 or 1 (define a small epsilon). This is the diagnostic you'd SHOW before
     trusting any IPW estimate.
     """
-    raise NotImplementedError
+    treated_propensity = propensity[treatment == 1]
+    control_propensity = propensity[treatment == 0]
+    treated_min = treated_propensity.min()
+    treated_max = treated_propensity.max()
+    control_min = control_propensity.min()
+    control_max = control_propensity.max()
+    epsilon = 0.05
+    ####### is this correct way to calculate overlap?  (no arm has propensities pinned near 0 or 1) #######
+    has_overlap = (treated_min > epsilon) and (treated_max < 1 - epsilon) and \
+                    (control_min > epsilon) and (control_max < 1 - epsilon)
+    return {
+        'treated_min': treated_min,
+        'treated_max': treated_max,
+        'control_min': control_min,
+        'control_max': control_max,
+        'has_overlap': has_overlap
+    }
 
 
 def ipw_ate(
@@ -61,4 +80,12 @@ def ipw_ate(
     On the synthetic test, the naive difference-in-means is biased by the confounder
     and IPW recovers the true effect within tolerance — that contrast is the lesson.
     """
-    raise NotImplementedError
+    # raise NotImplementedError
+    e = np.clip(propensity, clip, 1 - clip)
+    w_treated = 1 / e[treatment == 1]
+    w_control = 1 / (1 - e[treatment == 0])
+    y_treated = outcome[treatment == 1]
+    y_control = outcome[treatment == 0]
+    mean_treated = np.sum(w_treated * y_treated) / np.sum(w_treated)
+    mean_control = np.sum(w_control * y_control) / np.sum(w_control)
+    return mean_treated - mean_control

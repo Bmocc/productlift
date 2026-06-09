@@ -42,7 +42,12 @@ class TLearner:
         TODO(lillian): split X/outcome by treatment, fit self.model_t on treated and
         self.model_c on control (each via self._make()). Return self.
         """
-        raise NotImplementedError("Implement TLearner.fit — see tests/test_uplift.py")
+        # raise NotImplementedError("Implement TLearner.fit — see tests/test_uplift.py")
+        self.model_t = self._make()
+        self.model_c = self._make()
+        self.model_t.fit(X[treatment == 1], outcome[treatment == 1])
+        self.model_c.fit(X[treatment == 0], outcome[treatment == 0])
+        return self
 
     def predict_uplift(self, X: pd.DataFrame) -> np.ndarray:
         """Return per-row CATE estimate = pred_treated(X) - pred_control(X).
@@ -51,4 +56,6 @@ class TLearner:
         regressors). The test checks that the estimated uplift is higher for the
         subgroup with the larger true effect.
         """
-        raise NotImplementedError
+        model_t_pred = self.model_t.predict_proba(X)[:, 1] if hasattr(self.model_t, 'predict_proba') else self.model_t.predict(X)
+        model_c_pred = self.model_c.predict_proba(X)[:, 1] if hasattr(self.model_c, 'predict_proba') else self.model_c.predict(X)
+        return model_t_pred - model_c_pred
