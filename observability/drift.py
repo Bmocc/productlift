@@ -38,4 +38,15 @@ def population_stability_index(expected: np.ndarray, actual: np.ndarray, n_bins:
       - add a tiny epsilon to avoid log(0) / divide-by-zero on empty bins.
     The test checks PSI≈0 for identical samples and a large PSI for a shifted one.
     """
-    raise NotImplementedError("Implement population_stability_index — see tests/test_drift.py")
+    # raise NotImplementedError("Implement population_stability_index — see tests/test_drift.py")
+
+    bin_edges = np.quantile(expected, np.linspace(0, 1, n_bins + 1))
+    expected_counts, _ = np.histogram(expected, bins=bin_edges)
+    actual_counts, _ = np.histogram(actual, bins=bin_edges)
+    expected_proportions = expected_counts / len(expected)
+    actual_proportions = actual_counts / len(actual)
+    epsilon = 1e-10
+    expected_proportions += epsilon
+    actual_proportions += epsilon
+    psi = np.sum((actual_proportions - expected_proportions) * np.log(actual_proportions / expected_proportions))
+    return psi
