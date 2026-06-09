@@ -9,6 +9,7 @@ model failures.
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 
@@ -21,7 +22,7 @@ class Predictor:
         self.threshold = threshold
 
     @staticmethod
-    def _load(path: Path) -> tuple[object, ModelCard]:
+    def _load(path: Path) -> tuple[Any, ModelCard]:
         if not Path(path).exists():
             raise FileNotFoundError(
                 f"No model at {path}. Train one first: `make train`."

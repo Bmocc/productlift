@@ -9,12 +9,12 @@ baseline first, then GBDT, then calibrate, then register with a model card.
 from __future__ import annotations
 
 import pandas as pd
+from app.models.registry import ModelCard, save_model
 
 from app.config import get_params, get_settings
 from app.models.baseline import build_baseline, fit_predict_proba
 from app.models.calibrate import calibrate
 from app.models.gbdt import build_gbdt, compute_scale_pos_weight, fit_gbdt
-from app.models.registry import ModelCard, save_model
 from evaluation.metrics import pr_auc
 
 TARGET = "is_underperforming"

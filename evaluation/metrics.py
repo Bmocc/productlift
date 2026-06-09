@@ -61,7 +61,7 @@ def expected_calibration_error(y_true: np.ndarray, y_prob: np.ndarray, n_bins: i
     bins = np.linspace(0, 1, n_bins + 1)
     num_sample = len(y_true)
     ece = 0.0
-    for lo, hi in zip(bins[:-1], bins[1:]):
+    for lo, hi in zip(bins[:-1], bins[1:], strict=False):
         mask = (y_prob >= lo) & (y_prob < hi)
         if mask.sum() == 0:
             continue   # placeholder to avoid empty-bin divide-by-zero; implement the actual gap computation here

@@ -23,6 +23,8 @@ TEST
 
 from __future__ import annotations
 
+from typing import Any
+
 import numpy as np
 import pandas as pd
 
@@ -33,10 +35,10 @@ class TLearner:
 
     def __init__(self, model_factory) -> None:
         self._make = model_factory
-        self.model_t = None
-        self.model_c = None
+        self.model_t: Any = None
+        self.model_c: Any = None
 
-    def fit(self, X: pd.DataFrame, treatment: pd.Series, outcome: pd.Series) -> "TLearner":
+    def fit(self, X: pd.DataFrame, treatment: pd.Series, outcome: pd.Series) -> TLearner:
         """Fit one model on treated rows, one on control rows.
 
         TODO(lillian): split X/outcome by treatment, fit self.model_t on treated and

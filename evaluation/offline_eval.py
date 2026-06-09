@@ -21,7 +21,7 @@ TEST / RUN
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import numpy as np
@@ -69,7 +69,7 @@ def evaluate_predictions(
             try:
                 by_segment[level] = {name: fn(y_seg, p_seg) for name, fn in METRIC_FUNCS.items()}
             except Exception:
-                by_segment[level] = {name: None for name in METRIC_FUNCS}
+                by_segment[level] = {name: float("nan") for name in METRIC_FUNCS}
 
     return {"overall": overall, "by_segment": by_segment, "n": len(y_true)}
 
@@ -77,7 +77,7 @@ def evaluate_predictions(
 def save_run(report: dict) -> Path:
     """FULLY BUILT — append a timestamped eval run for trend tracking."""
     HISTORY_DIR.mkdir(exist_ok=True)
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     path = HISTORY_DIR / f"run_{stamp}.json"
     path.write_text(json.dumps(report, indent=2, default=float), encoding="utf-8")
     return path

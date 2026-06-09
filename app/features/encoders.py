@@ -45,7 +45,7 @@ class SmoothedTargetEncoder(BaseEstimator, TransformerMixin):
         self.column = column
         self.smoothing = smoothing
 
-    def fit(self, X: pd.DataFrame, y: pd.Series) -> "SmoothedTargetEncoder":
+    def fit(self, X: pd.DataFrame, y: pd.Series) -> SmoothedTargetEncoder:
         """Learn the smoothed per-category target mean from TRAIN data only.
 
         TODO(lillian):
@@ -75,4 +75,4 @@ class SmoothedTargetEncoder(BaseEstimator, TransformerMixin):
         """
         encoded = X[self.column].map(self.mapping_).fillna(self.global_mean_)
 
-        return encoded.values.reshape(-1, 1)
+        return encoded.to_numpy().reshape(-1, 1)

@@ -29,6 +29,7 @@ import numpy as np
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
 
+
 def estimate_propensity(X: pd.DataFrame, treatment: pd.Series) -> np.ndarray:
     """Return P(treated | X) for each row via logistic regression.
 

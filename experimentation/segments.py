@@ -25,9 +25,9 @@ TEST
 from __future__ import annotations
 
 import pandas as pd
+from statsmodels.stats.multitest import multipletests
 
 from experimentation.analyze import two_proportion_test
-from statsmodels.stats.multitest import multipletests
 
 
 def segment_effects(

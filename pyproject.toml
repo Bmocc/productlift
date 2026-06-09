@@ -59,6 +59,7 @@ include = ["app*", "evaluation*", "experimentation*", "causal*", "observability*
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+exclude = ["notebooks/"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM", "C4", "PD"]  # PD = pandas-vet
