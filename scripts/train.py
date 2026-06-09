@@ -30,7 +30,10 @@ def main() -> None:
     # touch once). A simple seeded random split over products is acceptable here
     # since the temporal leakage was already handled at feature/label time.
     y = matrix[TARGET]
-    X = matrix.drop(columns=[TARGET])
+    X = matrix.drop(columns=[TARGET, "product_id"])
+    if "product_category_name" in X.columns:
+        X = X.copy()
+        X["product_category_name"] = X["product_category_name"].astype("category")
     feature_names = list(X.columns)
 
     # --- Baseline first (always) ---

@@ -25,7 +25,10 @@ TEST
 
 from __future__ import annotations
 
+import numpy as np
+import pandas as pd
 from sklearn.compose import ColumnTransformer
+from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
@@ -41,9 +44,13 @@ def build_baseline(numeric: list[str], categorical: list[str]) -> Pipeline:
       - Use class_weight='balanced' on LogisticRegression to handle imbalance.
       - Think about why Pipeline prevents leakage structurally.
     """
+    num_pipe = Pipeline([
+        ("imputer", SimpleImputer(strategy="median")),
+        ("scaler", StandardScaler()),
+    ])
     preprocessor = ColumnTransformer(
         transformers=[
-            ("num_preprocess", StandardScaler(), numeric),
+            ("num_preprocess", num_pipe, numeric),
             ("cat_preprocess", OneHotEncoder(handle_unknown="ignore", sparse_output=False), categorical),
         ],
         remainder="drop",
@@ -59,3 +66,14 @@ def build_baseline(numeric: list[str], categorical: list[str]) -> Pipeline:
             )),
         ]
     )
+
+
+def fit_predict_proba(
+    model: Pipeline,
+    X_train: pd.DataFrame,
+    y_train: pd.Series,
+    X_pred: pd.DataFrame,
+) -> np.ndarray:
+    """Fit model on train data and return predict_proba on X_pred."""
+    model.fit(X_train, y_train)
+    return model.predict_proba(X_pred)[:, 1]

@@ -28,7 +28,17 @@ TEST
 
 from __future__ import annotations
 
+from typing import Any
+
 import numpy as np
+from sklearn.calibration import CalibratedClassifierCV
+
+
+def calibrate(model: Any, X_val: Any, y_val: Any) -> CalibratedClassifierCV:
+    """Wrap a model with isotonic calibration (3-fold CV)."""
+    cal = CalibratedClassifierCV(model, method="isotonic", cv=3)
+    cal.fit(X_val, y_val)
+    return cal
 
 
 def reliability_table(
