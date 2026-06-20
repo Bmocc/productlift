@@ -9,12 +9,13 @@ baseline first, then GBDT, then calibrate, then register with a model card.
 from __future__ import annotations
 
 import pandas as pd
-from app.models.registry import ModelCard, save_model
+from sklearn.model_selection import train_test_split
 
 from app.config import get_params, get_settings
 from app.models.baseline import build_baseline, fit_predict_proba
 from app.models.calibrate import calibrate
 from app.models.gbdt import build_gbdt, compute_scale_pos_weight, fit_gbdt
+from app.models.registry import ModelCard, save_model
 from evaluation.metrics import pr_auc
 
 TARGET = "is_underperforming"
@@ -46,8 +47,9 @@ def main() -> None:
     # --- GBDT with imbalance handling ---
     spw = compute_scale_pos_weight(y) if params["model"]["handle_imbalance"] == "scale_pos_weight" else None
     gbdt = build_gbdt(scale_pos_weight=spw)
-    gbdt = fit_gbdt(gbdt, X, y, X, y)  # replace with real train/valid in your impl
-    model = calibrate(gbdt, X, y) if params["model"]["calibrate"] else gbdt
+    X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=params["seed"])
+    gbdt = fit_gbdt(gbdt, X_train, y_train, X_val, y_val)
+    model = calibrate(gbdt, X_val, y_val) if params["model"]["calibrate"] else gbdt
 
     card = ModelCard(
         name="productlift_gbdt",

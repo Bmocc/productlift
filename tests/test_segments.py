@@ -32,7 +32,13 @@ def test_returns_adjusted_pvalues():
 
 
 def test_more_segments_is_stricter():
-    # the adjusted p for a comparable raw p should grow as we test more segments
-    few = segment_effects(_make_df(2), "segment", "group", "outcome")["p_adjusted"].min()
-    many = segment_effects(_make_df(10), "segment", "group", "outcome")["p_adjusted"].min()
+    # the adjusted p for a comparable raw p should grow as we test more segments.
+    # _make_df resets to seed 0 on each call, so s0 and s1 have identical data in
+    # both families. Comparing their adjusted p isolates the multiple-testing effect
+    # from the noise introduced by new (different) segments.
+    few_df = segment_effects(_make_df(2), "segment", "group", "outcome")
+    many_df = segment_effects(_make_df(10), "segment", "group", "outcome")
+    shared = set(few_df["segment"])
+    few = few_df["p_adjusted"].min()
+    many = many_df[many_df["segment"].isin(shared)]["p_adjusted"].min()
     assert many >= few - 1e-9

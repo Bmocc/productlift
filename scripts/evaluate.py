@@ -8,9 +8,9 @@ Runs once Milestone 4 (metrics + harness) is implemented.
 from __future__ import annotations
 
 import pandas as pd
-from app.models.registry import load_model
 
 from app.config import get_settings
+from app.models.registry import load_model
 from evaluation.offline_eval import evaluate_predictions, save_run
 from evaluation.reports import format_report
 

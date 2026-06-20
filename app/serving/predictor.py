@@ -38,5 +38,7 @@ class Predictor:
         """
         cols = self.card.feature_names or list(features.keys())
         row = pd.DataFrame([{c: features.get(c) for c in cols}])
+        for col in row.select_dtypes("object").columns:
+            row[col] = row[col].astype("category")
         proba = float(self.model.predict_proba(row)[:, 1][0])
         return proba, proba >= self.threshold

@@ -60,7 +60,7 @@ def segment_effects(
         lifts.append(result.relative_lift)
         ns.append(len(control) + len(treatment))
 
-    significant_adj, p_adjusted, _, _ = multipletests(p_value, alpha=alpha, method="fdr_bh")
+    significant_adj, p_adjusted, _, _ = multipletests(p_value, alpha=alpha, method="bonferroni")
     return pd.DataFrame(
         {
             "segment": df[segment_col].unique(),
