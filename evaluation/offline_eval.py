@@ -21,7 +21,7 @@ TEST / RUN
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import numpy as np
@@ -55,13 +55,29 @@ def evaluate_predictions(
       - return {"overall": {...}, "by_segment": {level: {...}}, "n": len(y_true)}.
     The test checks overall keys exist and a 2-segment split is reported separately.
     """
-    raise NotImplementedError("Implement evaluate_predictions — see tests/test_offline_eval.py")
+    y_true = np.asarray(y_true)
+    y_prob = np.asarray(y_prob)
+
+    overall = {name: fn(y_true, y_prob) for name, fn in METRIC_FUNCS.items()}
+
+    by_segment = {}
+    if segments is not None:
+        for level in segments.unique():
+            mask = (segments == level).to_numpy()
+            y_seg = y_true[mask]
+            p_seg = y_prob[mask]
+            try:
+                by_segment[level] = {name: fn(y_seg, p_seg) for name, fn in METRIC_FUNCS.items()}
+            except Exception:
+                by_segment[level] = {name: float("nan") for name in METRIC_FUNCS}
+
+    return {"overall": overall, "by_segment": by_segment, "n": len(y_true)}
 
 
 def save_run(report: dict) -> Path:
     """FULLY BUILT — append a timestamped eval run for trend tracking."""
     HISTORY_DIR.mkdir(exist_ok=True)
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     path = HISTORY_DIR / f"run_{stamp}.json"
     path.write_text(json.dumps(report, indent=2, default=float), encoding="utf-8")
     return path

@@ -9,6 +9,7 @@ baseline first, then GBDT, then calibrate, then register with a model card.
 from __future__ import annotations
 
 import pandas as pd
+from sklearn.model_selection import train_test_split
 
 from app.config import get_params, get_settings
 from app.models.baseline import build_baseline, fit_predict_proba
@@ -30,7 +31,10 @@ def main() -> None:
     # touch once). A simple seeded random split over products is acceptable here
     # since the temporal leakage was already handled at feature/label time.
     y = matrix[TARGET]
-    X = matrix.drop(columns=[TARGET])
+    X = matrix.drop(columns=[TARGET, "product_id"])
+    if "product_category_name" in X.columns:
+        X = X.copy()
+        X["product_category_name"] = X["product_category_name"].astype("category")
     feature_names = list(X.columns)
 
     # --- Baseline first (always) ---
@@ -43,8 +47,9 @@ def main() -> None:
     # --- GBDT with imbalance handling ---
     spw = compute_scale_pos_weight(y) if params["model"]["handle_imbalance"] == "scale_pos_weight" else None
     gbdt = build_gbdt(scale_pos_weight=spw)
-    gbdt = fit_gbdt(gbdt, X, y, X, y)  # replace with real train/valid in your impl
-    model = calibrate(gbdt, X, y) if params["model"]["calibrate"] else gbdt
+    X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=params["seed"])
+    gbdt = fit_gbdt(gbdt, X_train, y_train, X_val, y_val)
+    model = calibrate(gbdt, X_val, y_val) if params["model"]["calibrate"] else gbdt
 
     card = ModelCard(
         name="productlift_gbdt",

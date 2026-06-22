@@ -23,10 +23,13 @@ def main() -> None:
     model, card = load_model(settings.model_path)
 
     y = matrix[TARGET]
-    X = matrix.drop(columns=[TARGET])
+    X = matrix.drop(columns=[TARGET, "product_id"], errors="ignore")
+    if "product_category_name" in X.columns:
+        X = X.copy()
+        X["product_category_name"] = X["product_category_name"].astype("category")
     y_prob = model.predict_proba(X)[:, 1]
 
-    segments = X["product_category_name"] if "product_category_name" in X else None
+    segments = X.get("product_category_name", None)
     report = evaluate_predictions(y.to_numpy(), y_prob, segments=segments)
     path = save_run(report)
     print(format_report(report))

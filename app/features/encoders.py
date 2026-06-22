@@ -45,7 +45,7 @@ class SmoothedTargetEncoder(BaseEstimator, TransformerMixin):
         self.column = column
         self.smoothing = smoothing
 
-    def fit(self, X: pd.DataFrame, y: pd.Series) -> "SmoothedTargetEncoder":
+    def fit(self, X: pd.DataFrame, y: pd.Series) -> SmoothedTargetEncoder:
         """Learn the smoothed per-category target mean from TRAIN data only.
 
         TODO(lillian):
@@ -54,7 +54,16 @@ class SmoothedTargetEncoder(BaseEstimator, TransformerMixin):
           - self.mapping_ = smoothed encoding per category (formula in KEY CONCEPT)
           store enough state to transform unseen data. Return self.
         """
-        raise NotImplementedError("Implement fit — see tests/test_encoders.py")
+        self.global_mean_ = y.mean()
+        stats = y.groupby(X[self.column]).agg(['count', 'mean'])
+        num_c = stats['count']
+        mean_c = stats['mean']
+        m = self.smoothing
+        self.mapping_ = (num_c * mean_c + m * self.global_mean_) / (num_c + m)
+
+        return self
+
+
 
     def transform(self, X: pd.DataFrame) -> np.ndarray:
         """Map X[self.column] to its encoded value; unseen categories → global_mean_.
@@ -64,4 +73,6 @@ class SmoothedTargetEncoder(BaseEstimator, TransformerMixin):
         category is pulled toward the global mean, (3) an unseen category gets exactly
         the global mean.
         """
-        raise NotImplementedError("Implement transform — see tests/test_encoders.py")
+        encoded = X[self.column].map(self.mapping_).fillna(self.global_mean_)
+
+        return encoded.to_numpy().reshape(-1, 1)

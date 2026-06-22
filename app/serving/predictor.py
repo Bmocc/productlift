@@ -9,6 +9,7 @@ model failures.
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 
@@ -21,7 +22,7 @@ class Predictor:
         self.threshold = threshold
 
     @staticmethod
-    def _load(path: Path) -> tuple[object, ModelCard]:
+    def _load(path: Path) -> tuple[Any, ModelCard]:
         if not Path(path).exists():
             raise FileNotFoundError(
                 f"No model at {path}. Train one first: `make train`."
@@ -37,5 +38,7 @@ class Predictor:
         """
         cols = self.card.feature_names or list(features.keys())
         row = pd.DataFrame([{c: features.get(c) for c in cols}])
+        for col in row.select_dtypes("object").columns:
+            row[col] = row[col].astype("category")
         proba = float(self.model.predict_proba(row)[:, 1][0])
         return proba, proba >= self.threshold

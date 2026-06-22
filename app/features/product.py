@@ -26,6 +26,7 @@ TEST
 
 from __future__ import annotations
 
+import numpy as np
 import pandas as pd
 
 
@@ -42,4 +43,23 @@ def product_features(feature_events: pd.DataFrame) -> pd.DataFrame:
     Return product-level, one row per product_id. The test checks the volume and the
     category-relative price computation on a small fixture.
     """
-    raise NotImplementedError("Implement product_features — see tests/test_features.py")
+    features_product = feature_events[["product_id", "product_category_name", "product_weight_g", 
+                                       "product_length_cm", "product_height_cm", "product_width_cm", 
+                                       "product_description_lenght", "product_name_lenght", "product_photos_qty"]].drop_duplicates("product_id").copy()
+    features_product["volume_cm3"] = (features_product["product_length_cm"] * 
+                                      features_product["product_height_cm"] * 
+                                      features_product["product_width_cm"])
+    features_product['log_weight_g'] = features_product['product_weight_g'].apply(lambda x: np.log(x) if x > 0 else 0)
+    features_product['log_volume_cm3'] = features_product['volume_cm3'].apply(lambda x: np.log(x) if x > 0 else 0)
+
+    avg_unit_price = feature_events.groupby("product_id")['price'].mean()
+    features_product["avg_unit_price"] = features_product["product_id"].map(avg_unit_price)
+
+    category_median_price = features_product.groupby("product_category_name")['avg_unit_price'].median()
+    features_product["price_vs_category_median"] = (
+        features_product["avg_unit_price"]
+        / features_product["product_category_name"].map(category_median_price)
+    )
+
+    return features_product
+

@@ -54,5 +54,5 @@ def predict(req: PredictRequest) -> PredictResponse:
         underperformance_probability=proba,
         flagged=flagged,
         model_name=p.card.name,
-        model_version=p.card.created_at,
+        model_version=p.card.data_window.get("train_end"),
     )

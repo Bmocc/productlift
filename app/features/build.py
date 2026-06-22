@@ -45,9 +45,18 @@ def assemble(base: pd.DataFrame, as_of: pd.Timestamp, horizon_days: int, **label
       3. labels = label_underperforming(outcome_events, **label_kwargs)
       4. join feats to labels on product_id. Decide the join type and document why
          (a product with features but no outcome-window orders has no label — drop
-         it, or is that itself the signal? this is a real modeling decision to make
+         it, or is that itself the signal????? this is a real modeling decision to make
          and defend).
     The test builds a tiny base table and checks no outcome-window column leaks into
     the feature columns.
     """
-    raise NotImplementedError("Implement assemble — see tests/test_build.py")
+
+    feature_events, outcome_events = split_windows(base, as_of, horizon_days)
+    feats = product_features(feature_events).merge(
+        behavioral_features(feature_events), on="product_id"
+    ).merge(
+        temporal_features(feature_events, as_of), on="product_id"
+    )
+    labels = label_underperforming(outcome_events, **label_kwargs)
+    modeling_matrix = feats.merge(labels[["product_id", "is_underperforming"]], on="product_id", how="inner")
+    return modeling_matrix
