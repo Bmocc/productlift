@@ -31,7 +31,8 @@ data/processed/*
 !data/processed/.gitkeep
 
 # --- Model & experiment artifacts ---
-models/
+# Anchored to repo root: unanchored `models/` also swallows app/models/ SOURCE CODE.
+/models/
 artifacts/
 mlruns/
 *.joblib
@@ -47,3 +48,8 @@ Thumbs.db
 .idea/
 .vscode/*
 !.vscode/extensions.json
+.claude/settings.json
+memory/
+# cc-enforcer index / cc-memory state: machine-local, never content
+.ce/
+.ccm/
